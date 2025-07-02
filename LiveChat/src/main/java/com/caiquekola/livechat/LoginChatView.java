@@ -4,12 +4,12 @@
  */
 package com.caiquekola.livechat;
 
+import java.awt.event.KeyEvent;
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.util.List;
-import java.util.ArrayList;
 import javax.swing.JOptionPane;
 
 /**
@@ -40,20 +40,36 @@ public class LoginChatView extends javax.swing.JFrame {
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
+        nome.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                nomeKeyPressed(evt);
+            }
+        });
+
         numero.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 numeroActionPerformed(evt);
             }
         });
+        numero.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                numeroKeyPressed(evt);
+            }
+        });
 
         nomeLabel.setText("Nome de usuário");
 
-        numeroLabel.setText("Senha");
+        numeroLabel.setText("Número de identificação");
 
         entrarBotao.setText("Entrar");
         entrarBotao.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 entrarBotaoActionPerformed(evt);
+            }
+        });
+        entrarBotao.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                entrarBotaoKeyPressed(evt);
             }
         });
 
@@ -64,12 +80,12 @@ public class LoginChatView extends javax.swing.JFrame {
             .addGroup(jPanel1Layout.createSequentialGroup()
                 .addGap(76, 76, 76)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(numero, javax.swing.GroupLayout.DEFAULT_SIZE, 224, Short.MAX_VALUE)
+                    .addComponent(numero)
                     .addComponent(nomeLabel)
                     .addComponent(numeroLabel)
                     .addComponent(nome)
-                    .addComponent(entrarBotao, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addContainerGap(103, Short.MAX_VALUE))
+                    .addComponent(entrarBotao, javax.swing.GroupLayout.DEFAULT_SIZE, 224, Short.MAX_VALUE))
+                .addContainerGap(72, Short.MAX_VALUE))
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -84,14 +100,16 @@ public class LoginChatView extends javax.swing.JFrame {
                 .addComponent(numero, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(18, 18, 18)
                 .addComponent(entrarBotao)
-                .addContainerGap(51, Short.MAX_VALUE))
+                .addContainerGap(102, Short.MAX_VALUE))
         );
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+            .addGroup(layout.createSequentialGroup()
+                .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addContainerGap())
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -107,40 +125,68 @@ public class LoginChatView extends javax.swing.JFrame {
     }//GEN-LAST:event_numeroActionPerformed
 
     private void entrarBotaoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_entrarBotaoActionPerformed
-        // TODO add your handling code here:
-        String nomeUsuario = nome.getText();
-        String senha = numero.getText();
+        conectar();
+    }//GEN-LAST:event_entrarBotaoActionPerformed
 
-        if (nomeUsuario.isEmpty() || senha.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Por favor, preencha todos os campos.", "AVISO!", JOptionPane.WARNING_MESSAGE);
+    private void entrarBotaoKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_entrarBotaoKeyPressed
+
+    }//GEN-LAST:event_entrarBotaoKeyPressed
+
+    private void numeroKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_numeroKeyPressed
+        if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
+            entrarBotao.doClick();
+        }
+    }//GEN-LAST:event_numeroKeyPressed
+
+    private void nomeKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_nomeKeyPressed
+        if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
+            entrarBotao.doClick();
+        }
+    }//GEN-LAST:event_nomeKeyPressed
+
+    private void conectar() {
+        String nomeUsuario = nome.getText().trim();
+        String numeroUsuario = numero.getText().trim();
+
+        if (nomeUsuario.isEmpty() || numeroUsuario.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Preencha todos os campos!");
             return;
         }
 
         try {
-            Socket socket = new Socket("127.0.0.1", 12345);
-
+            Socket socket = new Socket("localhost", 23044); // Conexão com o servidor
             PrintWriter saida = new PrintWriter(socket.getOutputStream(), true);
-            saida.println("LOGIN:" + nomeUsuario + ":" + senha); // Envia um protocolo simples
-
             BufferedReader entrada = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            String resposta = entrada.readLine();
 
-            if ("LOGIN_SUCCESS".equals(resposta)) {
-                this.dispose(); 
-                LiveChatView chat = new LiveChatView(socket, nomeUsuario); 
-                chat.setVisible(true);
-            } else {
-                // Se o login falhar (ex: nome já em uso)
-                JOptionPane.showMessageDialog(this, resposta, "Erro de Login", JOptionPane.ERROR_MESSAGE);
-                socket.close(); // Fecha a conexão que falhou
+            //Envio para o servidor
+            saida.println(nomeUsuario);
+            saida.println(numeroUsuario);
+
+            //Código de error do servidor para usuário existente
+            String cod = entrada.readLine();
+            System.out.println("Codigo: " + cod);
+
+            if (cod == null) {
+                JOptionPane.showMessageDialog(this, "Erro: O servidor não respondeu");
+                socket.close();
+                return;
+            } else if (cod.equals("COD1")) {
+                JOptionPane.showMessageDialog(this, "Usuário já existente!");
+                nome.setText(nome.getText() + Math.random() * 1000);
+                numero.setText(numero.getText() + String.format("%.2f", (Math.random() * 1000)));
+                socket.close();
+                return;
             }
 
-        } catch (IOException e) {
-            JOptionPane.showMessageDialog(this, "Não foi possível conectar ao servidor.", "Erro de Conexão", JOptionPane.ERROR_MESSAGE);
-            e.printStackTrace();
-        }
+            // Abre a interface do chat
+            new LiveChatView(socket, entrada, saida, nomeUsuario, numeroUsuario).setVisible(true);
+            this.dispose();
 
-    }//GEN-LAST:event_entrarBotaoActionPerformed
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(this, "Erro ao conectar no servidor.");
+            ex.printStackTrace();
+        }
+    }
 
     /**
      * @param args the command line arguments
